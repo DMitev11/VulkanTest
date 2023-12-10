@@ -1,0 +1,9 @@
+set(BUILD_FOLDER ${CMAKE_BINARY_DIR}/buildTarget)
+set_target_properties(main PROPERTIES
+    CXX_STANDARD 17
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_FOLDER}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_FOLDER}
+    RUNTIME_OUTPUT_DIRECTORY ${BUILD_FOLDER}
+)
+ 
+target_link_libraries(main ${OPENGL_LIBRARIES} glfw glm::glm Vulkan::Vulkan)
