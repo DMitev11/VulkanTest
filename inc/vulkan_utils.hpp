@@ -18,20 +18,21 @@ VkApplicationInfo getApplicationInfo()
 
 VkInstanceCreateInfo getCreateApplicationInfo(
     VkApplicationInfo *applicationInfo,
-    const std::vector<const char *> layerNames = {},
-    const std::vector<const char *> extensionNames = {},
+    const std::vector<const char *> *layerNames = {},
+    const std::vector<const char *> *extensionNames = {},
     const void *next = nullptr)
 {
     VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = applicationInfo;
 
-    createInfo.enabledLayerCount = static_cast<uint32_t>(layerNames.size());
-    if (layerNames.size() > 0)
-        createInfo.ppEnabledLayerNames = layerNames.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(layerNames->size());
+    if (layerNames->size() > 0)
+        createInfo.ppEnabledLayerNames = layerNames->data();
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
-    if (extensionNames.size() > 0)
-        createInfo.ppEnabledExtensionNames = extensionNames.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames->size());
+    if (extensionNames->size() > 0)
+        createInfo.ppEnabledExtensionNames = extensionNames->data();
 
     if (next != nullptr)
         createInfo.pNext = next;
@@ -87,8 +88,15 @@ VkDebugUtilsMessengerCreateInfoEXT getDebugMessangerInfo()
 {
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_FLAG_BITS_MAX_ENUM_EXT;
+    createInfo.messageSeverity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType =
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugMessageCallback;
     createInfo.pUserData = nullptr;
     return createInfo;

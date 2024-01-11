@@ -19,15 +19,27 @@ void HelloTriangleApp::initVulkan()
     std::vector<const char *> layers = checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
     std::vector<const char *> extensions = getRequiredExtensions();
 
-    auto debugInfo = getDebugMessangerInfo();
-    // note: Check why it has segmentation error when using layers and extensions
-    auto createInfo = getCreateApplicationInfo(&applicationInfo, {}, {}, &debugInfo);
-
     if (m_VkInstance == nullptr)
     {
         m_VkInstance = new VkInstance();
     }
+
+    auto debugInfo = getDebugMessangerInfo();
+    auto createInfo = getCreateApplicationInfo(&applicationInfo, &layers, &extensions, &debugInfo);
     if (vkCreateInstance(&createInfo, nullptr, (VkInstance *)m_VkInstance) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create instance!");
+    }
+}
+
+void HelloTriangleApp::setupDebugMessanger()
+{
+    auto debugInfo = getDebugMessangerInfo();
+    if (m_VkDebugMessager == nullptr)
+    {
+        m_VkDebugMessager = new VkDebugUtilsMessengerEXT();
+    }
+    if (CreateDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, &debugInfo, nullptr, (VkDebugUtilsMessengerEXT *)m_VkDebugMessager) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create instance!");
     }
@@ -37,6 +49,7 @@ void HelloTriangleApp::mainLoop()
 {
     initWindow();
     initVulkan();
+    setupDebugMessanger();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {
@@ -46,6 +59,7 @@ void HelloTriangleApp::mainLoop()
 
 void HelloTriangleApp::cleanup()
 {
+    DestroyDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, *(VkDebugUtilsMessengerEXT *)m_VkDebugMessager, nullptr);
     vkDestroyInstance(*(VkInstance *)m_VkInstance, nullptr);
     glfwDestroyWindow((GLFWwindow *)m_Window);
     glfwTerminate();

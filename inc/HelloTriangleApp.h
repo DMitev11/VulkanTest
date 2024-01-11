@@ -18,10 +18,12 @@ private:
 
     void *m_Window = nullptr;
     void *m_VkInstance = nullptr;
+    void *m_VkDebugMessager = nullptr;
 
 private:
     void initWindow();
     void initVulkan();
+    void setupDebugMessanger();
 
     void mainLoop();
     void cleanup();
