@@ -12,13 +12,14 @@ endif()
 add_subdirectory("./lib")
 include ("./config.cmake")
 
-add_subdirectory("./inc")
-add_subdirectory("./src")
-
-
+set(HEADER_FILES 
+    ./inc/HelloTriangleApp.h
+    ./inc/vulkan_utils.hpp
+)
 set(SOURCE_FILES 
     ./main.cpp
+    ./src/HelloTriangleApp.cpp
 ) 
-add_executable(main ${SOURCE_FILES}) 
+add_executable(main ${HEADER_FILES} ${SOURCE_FILES}) 
 
 include ("./exec_config.cmake")
