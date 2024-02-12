@@ -102,7 +102,7 @@ VkDebugUtilsMessengerCreateInfoEXT getDebugMessangerInfo()
     return createInfo;
 }
 
-VkResult CreateDebugUtilsMessengerEXT(
+VkResult createDebugUtilsMessengerEXT(
     VkInstance instance,
     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator,
@@ -120,7 +120,7 @@ VkResult CreateDebugUtilsMessengerEXT(
     }
 }
 
-void DestroyDebugUtilsMessengerEXT(
+void destroyDebugUtilsMessengerEXT(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
     const VkAllocationCallbacks *pAllocator)
@@ -131,4 +131,52 @@ void DestroyDebugUtilsMessengerEXT(
     {
         func(instance, debugMessenger, pAllocator);
     }
+}
+
+std::vector<VkPhysicalDevice> getPhysicalDevices(VkInstance instance)
+{
+    uint32_t count = 0;
+    vkEnumeratePhysicalDevices(instance, &count, nullptr);
+
+    if (count <= 0)
+        return std::vector<VkPhysicalDevice>{};
+
+    std::vector<VkPhysicalDevice> devices = std::vector<VkPhysicalDevice>(count);
+    vkEnumeratePhysicalDevices(instance, &count, devices.data());
+
+    return devices;
+}
+
+bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return deviceProperties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+           deviceFeatures.geometryShader;
+}
+
+template <typename T>
+bool allValid(T arg, std::vector<bool (*)(T)> predicates)
+{
+    for (auto predicate : predicates)
+    {
+        if (!predicate(arg))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <typename T>
+auto equal(T rhs)
+{
+    return [rhs](T lhs)
+    {
+        return lhs == rhs;
+    };
 }
