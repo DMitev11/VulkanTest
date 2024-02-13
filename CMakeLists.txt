@@ -13,8 +13,9 @@ add_subdirectory("./lib")
 include ("./config.cmake")
 
 set(HEADER_FILES 
-    ./inc/HelloTriangleApp.h
+    ./inc/fwd.hpp
     ./inc/vulkan_utils.hpp
+    ./inc/HelloTriangleApp.h
 )
 set(SOURCE_FILES 
     ./main.cpp

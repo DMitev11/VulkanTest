@@ -1,9 +1,11 @@
-#include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
+#pragma once
+#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include "fwd.hpp"
 
+#pragma region application
 VkApplicationInfo getApplicationInfo()
 {
     VkApplicationInfo appInfo{};
@@ -38,6 +40,7 @@ VkInstanceCreateInfo getCreateApplicationInfo(
         createInfo.pNext = next;
     return createInfo;
 }
+#pragma endregion
 
 bool checkValidationLayerSupport(std::vector<const char *> validationLayers)
 {
@@ -58,6 +61,7 @@ bool checkValidationLayerSupport(std::vector<const char *> validationLayers)
     return true;
 }
 
+#pragma region debug
 std::vector<const char *> getRequiredExtensions()
 {
     uint32_t glfwExtensionCount;
@@ -132,6 +136,19 @@ void destroyDebugUtilsMessengerEXT(
         func(instance, debugMessenger, pAllocator);
     }
 }
+#pragma endregion
+
+#pragma region devices
+bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return deviceProperties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+           deviceFeatures.geometryShader;
+}
 
 std::vector<VkPhysicalDevice> getPhysicalDevices(VkInstance instance)
 {
@@ -147,17 +164,80 @@ std::vector<VkPhysicalDevice> getPhysicalDevices(VkInstance instance)
     return devices;
 }
 
-bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
+VkPhysicalDevice getValidPhysicalDevice(std::vector<VkPhysicalDevice> physicalDevices)
 {
-    VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+    VkPhysicalDevice physicalDevice;
+    while (!physicalDevices.empty())
+    {
+        auto device = *physicalDevices.begin();
+        if (isPhysicalDeviceSuitable(device))
+        {
+            physicalDevice = device;
+        }
+        physicalDevices.erase(physicalDevices.begin());
+    }
 
-    return deviceProperties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-           deviceFeatures.geometryShader;
+    return physicalDevice;
 }
 
+VkDeviceQueueCreateInfo getDeviceQueueCreateInfo(VkPhysicalDevice physicalDevice)
+{
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    int familyIndex;
+    for (auto i = 0; i < queueFamilies.size(); i++)
+    {
+        const auto queueFamily = queueFamilies[i];
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            familyIndex = i;
+            break;
+        }
+    }
+
+    float queuePriority = 1.0f;
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = familyIndex;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    return queueCreateInfo;
+}
+
+VkDeviceCreateInfo getDeviceCreateInfo(
+    VkDeviceQueueCreateInfo *queueCreateInfo,
+    VkPhysicalDeviceFeatures *deviceFeatures,
+    std::vector<const char *> layers)
+{
+    VkDeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfo;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pEnabledFeatures = deviceFeatures;
+    deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+    deviceCreateInfo.ppEnabledLayerNames = layers.data();
+
+    return deviceCreateInfo;
+}
+#pragma endregion
+
+#pragma region surface
+VkWin32SurfaceCreateInfoKHR getSurfaceCreateInfo(HINSTANCE instance, GLFWwindow *window)
+{
+    VkWin32SurfaceCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    createInfo.hwnd = glfwGetWin32Window(window);
+    createInfo.hinstance = instance;
+    return createInfo;
+}
+#pragma endregion
+#pragma region templates
 template <typename T>
 bool allValid(T arg, std::vector<bool (*)(T)> predicates)
 {
@@ -180,3 +260,4 @@ auto equal(T rhs)
         return lhs == rhs;
     };
 }
+#pragma endregion

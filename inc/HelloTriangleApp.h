@@ -20,12 +20,14 @@ private:
     void *m_VkInstance = nullptr;
     void *m_VkDebugMessager = nullptr;
     void *m_VkDevice = nullptr;
+    void *m_VkSurface = nullptr;
 
 private:
     void initWindow();
     void initVulkan();
     void setupDebugMessanger();
     void createDevice();
+    void createSurface();
 
     void mainLoop();
     void cleanup();

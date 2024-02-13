@@ -1,7 +1,7 @@
-#include "../inc/HelloTriangleApp.h"
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 #include "../inc/vulkan_utils.hpp"
+#include "../inc/HelloTriangleApp.h"
 
 void HelloTriangleApp::initWindow()
 {
@@ -52,59 +52,26 @@ void HelloTriangleApp::createDevice()
         m_VkDevice = new VkDevice();
     }
 
-    std::vector<VkPhysicalDevice> physicalDevices = getPhysicalDevices(*(VkInstance *)m_VkInstance);
-    VkPhysicalDevice physicalDevice;
-    while (!physicalDevices.empty())
-    {
-        auto device = *physicalDevices.begin();
-        if (isPhysicalDeviceSuitable(device))
-        {
-            physicalDevice = device;
-        }
-        physicalDevices.erase(physicalDevices.begin());
-    }
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-    int familyIndex;
-    for (auto i = 0; i < queueFamilies.size(); i++)
-    {
-        const auto queueFamily = queueFamilies[i];
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            familyIndex = i;
-            break;
-        }
-    }
-
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = familyIndex;
-    queueCreateInfo.queueCount = 1;
-
-    float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    VkPhysicalDevice physicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance));
+    VkDeviceQueueCreateInfo queueInfo = getDeviceQueueCreateInfo(physicalDevice);
     VkPhysicalDeviceFeatures deviceFeatures{};
-
-    VkDeviceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
-    createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = 0;
-
-    std::vector<const char *> layers = checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
-    createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
-    createInfo.ppEnabledLayerNames = layers.data();
+    std::vector<const char *> layers =
+        checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
+    VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfo, &deviceFeatures, layers);
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create logical device!");
     }
+}
+
+void HelloTriangleApp::createSurface()
+{
+    // VkWin32SurfaceCreateInfoKHR createInfo = getSurfaceCreateInfo(GetModuleHandle(nullptr), (GLFWwindow *)m_Window);
+    // if (vkCreateWin32SurfaceKHR(m_VkInstance, &createInfo, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
+    // {
+    //     throw std::runtime_error("failed to create window surface!");
+    // }
 }
 
 void HelloTriangleApp::mainLoop()
