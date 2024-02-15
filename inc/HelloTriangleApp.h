@@ -1,6 +1,8 @@
+#pragma once
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include "./fwd.hpp"
 
 class HelloTriangleApp
 {

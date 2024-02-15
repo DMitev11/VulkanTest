@@ -84,5 +84,6 @@
     "variant": "cpp"
   },
   "cmake.configureOnOpen": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true
 }

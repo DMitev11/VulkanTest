@@ -1,5 +1,3 @@
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
 #include "../inc/vulkan_utils.hpp"
 #include "../inc/HelloTriangleApp.h"
 
@@ -57,7 +55,7 @@ void HelloTriangleApp::createDevice()
     VkPhysicalDeviceFeatures deviceFeatures{};
     std::vector<const char *> layers =
         checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
-    VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfo, &deviceFeatures, layers);
+    VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfo, &deviceFeatures, &layers);
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
     {
@@ -67,11 +65,11 @@ void HelloTriangleApp::createDevice()
 
 void HelloTriangleApp::createSurface()
 {
-    // VkWin32SurfaceCreateInfoKHR createInfo = getSurfaceCreateInfo(GetModuleHandle(nullptr), (GLFWwindow *)m_Window);
-    // if (vkCreateWin32SurfaceKHR(m_VkInstance, &createInfo, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
-    // {
-    //     throw std::runtime_error("failed to create window surface!");
-    // }
+    VkWin32SurfaceCreateInfoKHR createInfo = getSurfaceCreateInfo(GetModuleHandle(nullptr), (GLFWwindow *)m_Window);
+    if (vkCreateWin32SurfaceKHR(*(VkInstance *)m_VkInstance, &createInfo, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create window surface!");
+    }
 }
 
 void HelloTriangleApp::mainLoop()
@@ -80,6 +78,7 @@ void HelloTriangleApp::mainLoop()
     initVulkan();
     setupDebugMessanger();
     createDevice();
+    // createSurface();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {

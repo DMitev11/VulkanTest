@@ -42,7 +42,7 @@ VkInstanceCreateInfo getCreateApplicationInfo(
 }
 #pragma endregion
 
-bool checkValidationLayerSupport(std::vector<const char *> validationLayers)
+bool checkValidationLayerSupport(const std::vector<const char *> validationLayers = {})
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -212,7 +212,7 @@ VkDeviceQueueCreateInfo getDeviceQueueCreateInfo(VkPhysicalDevice physicalDevice
 VkDeviceCreateInfo getDeviceCreateInfo(
     VkDeviceQueueCreateInfo *queueCreateInfo,
     VkPhysicalDeviceFeatures *deviceFeatures,
-    std::vector<const char *> layers)
+    const std::vector<const char *>* layers = {})
 {
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -220,8 +220,8 @@ VkDeviceCreateInfo getDeviceCreateInfo(
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pEnabledFeatures = deviceFeatures;
     deviceCreateInfo.enabledExtensionCount = 0;
-    deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
-    deviceCreateInfo.ppEnabledLayerNames = layers.data();
+    deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(layers->size());
+    deviceCreateInfo.ppEnabledLayerNames = layers->data();
 
     return deviceCreateInfo;
 }
@@ -237,6 +237,7 @@ VkWin32SurfaceCreateInfoKHR getSurfaceCreateInfo(HINSTANCE instance, GLFWwindow 
     return createInfo;
 }
 #pragma endregion
+
 #pragma region templates
 template <typename T>
 bool allValid(T arg, std::vector<bool (*)(T)> predicates)
