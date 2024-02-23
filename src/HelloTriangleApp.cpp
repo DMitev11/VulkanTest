@@ -1,17 +1,20 @@
 #include "../inc/vulkan_utils.hpp"
 #include "../inc/HelloTriangleApp.h"
 
-void HelloTriangleApp::initWindow()
+void HelloTriangleApp::init()
 {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+}
 
+void HelloTriangleApp::initWindow()
+{
     m_Window = glfwCreateWindow(WIDTH, HEIGHT, "VulkanTest", nullptr, nullptr);
 }
 
-void HelloTriangleApp::initVulkan()
+void HelloTriangleApp::initInstance()
 {
     auto applicationInfo = getApplicationInfo();
     std::vector<const char *> layers = checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
@@ -43,42 +46,54 @@ void HelloTriangleApp::setupDebugMessanger()
     }
 }
 
-void HelloTriangleApp::createDevice()
-{
-    if (m_VkDevice == nullptr)
-    {
-        m_VkDevice = new VkDevice();
-    }
-
-    VkPhysicalDevice physicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance));
-    VkDeviceQueueCreateInfo queueInfo = getDeviceQueueCreateInfo(physicalDevice);
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    std::vector<const char *> layers =
-        checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
-    VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfo, &deviceFeatures, &layers);
-
-    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create logical device!");
-    }
-}
-
 void HelloTriangleApp::createSurface()
 {
+    validate<VkSurfaceKHR>((VkSurfaceKHR **) &m_VkSurface);
+    
     VkWin32SurfaceCreateInfoKHR createInfo = getSurfaceCreateInfo(GetModuleHandle(nullptr), (GLFWwindow *)m_Window);
     if (vkCreateWin32SurfaceKHR(*(VkInstance *)m_VkInstance, &createInfo, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create window surface!");
     }
+
+    if (glfwCreateWindowSurface(*(VkInstance *)m_VkInstance, (GLFWwindow *)m_Window, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+
+}
+
+void HelloTriangleApp::createDevice()
+{
+    VkPhysicalDevice physicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance), m_DeviceExtensions);
+    QueueFamilies familyIndexes = getQueueFamilyIndexes(physicalDevice, getQueueFamilyProperties(physicalDevice), *(VkSurfaceKHR*)m_VkSurface);
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = getDeviceQueueCreateInfo(physicalDevice, familyIndexes);
+    std::vector<VkDeviceQueueCreateInfo> queueInfos = 
+        getDeviceQueueCreateInfo(physicalDevice, familyIndexes);
+
+
+    validate((VkDevice**) &m_VkDevice);
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    std::vector<const char *> layers =
+        checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
+    VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfos, &deviceFeatures, &layers, &m_DeviceExtensions);
+    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create logical device!");
+    }
+
+    validate((VkQueue**) &m_VkPresentQueue);
+    vkGetDeviceQueue(*(VkDevice *)m_VkDevice, familyIndexes.presentation, 0, (VkQueue*)m_VkPresentQueue);
 }
 
 void HelloTriangleApp::mainLoop()
 {
+    init();
+    initInstance();
     initWindow();
-    initVulkan();
     setupDebugMessanger();
+    createSurface();
     createDevice();
-    // createSurface();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {

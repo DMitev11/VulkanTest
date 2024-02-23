@@ -1,9 +1,17 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <set>
 #include <algorithm>
 #include <cstring>
 #include "fwd.hpp"
+
+#pragma region structs
+struct QueueFamilies { 
+    uint32_t graphics;
+    uint32_t presentation;
+};
+#pragma endregion
 
 #pragma region application
 VkApplicationInfo getApplicationInfo()
@@ -139,15 +147,26 @@ void destroyDebugUtilsMessengerEXT(
 #pragma endregion
 
 #pragma region devices
-bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
+bool isPhysicalDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*> deviceExtensions)
 {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-    return deviceProperties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-           deviceFeatures.geometryShader;
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    } 
+
+    return requiredExtensions.empty() && 
+        deviceProperties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+        deviceFeatures.geometryShader;
 }
 
 std::vector<VkPhysicalDevice> getPhysicalDevices(VkInstance instance)
@@ -164,13 +183,13 @@ std::vector<VkPhysicalDevice> getPhysicalDevices(VkInstance instance)
     return devices;
 }
 
-VkPhysicalDevice getValidPhysicalDevice(std::vector<VkPhysicalDevice> physicalDevices)
+VkPhysicalDevice getValidPhysicalDevice(std::vector<VkPhysicalDevice> physicalDevices, const std::vector<const char*> deviceExtensions)
 {
     VkPhysicalDevice physicalDevice;
     while (!physicalDevices.empty())
     {
         auto device = *physicalDevices.begin();
-        if (isPhysicalDeviceSuitable(device))
+        if (isPhysicalDeviceSuitable(device, deviceExtensions))
         {
             physicalDevice = device;
         }
@@ -180,46 +199,71 @@ VkPhysicalDevice getValidPhysicalDevice(std::vector<VkPhysicalDevice> physicalDe
     return physicalDevice;
 }
 
-VkDeviceQueueCreateInfo getDeviceQueueCreateInfo(VkPhysicalDevice physicalDevice)
-{
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+std::vector<VkQueueFamilyProperties> getQueueFamilyProperties(VkPhysicalDevice physicalDevice) { 
+    uint32_t familyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
 
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+    std::vector<VkQueueFamilyProperties> properties(familyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, properties.data());
+    return properties;        
+}
 
-    int familyIndex;
-    for (auto i = 0; i < queueFamilies.size(); i++)
+QueueFamilies getQueueFamilyIndexes(
+    VkPhysicalDevice physicalDevice, 
+    std::vector<VkQueueFamilyProperties> queueProperties, 
+    VkSurfaceKHR surface) 
+{     
+    QueueFamilies queueFamilies;
+    for (auto i = 0; i < queueProperties.size(); i++)
     {
-        const auto queueFamily = queueFamilies[i];
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        //check graphics
+        if (queueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            familyIndex = i;
-            break;
+            queueFamilies.graphics = i;
         }
-    }
+
+        VkBool32 surfaceSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &surfaceSupport);
+        if(surfaceSupport) { 
+            queueFamilies.presentation = i;
+        }
+    }    
+    return queueFamilies;
+}
+
+std::vector<VkDeviceQueueCreateInfo> getDeviceQueueCreateInfo(VkPhysicalDevice physicalDevice, QueueFamilies queueFamilies)
+{
+    std::vector<VkDeviceQueueCreateInfo> createInfos; 
 
     float queuePriority = 1.0f;
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = familyIndex;
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    std::vector<uint32_t> families = std::vector<uint32_t>{queueFamilies.graphics, queueFamilies.presentation};
+    for(auto family : families) { 
+        VkDeviceQueueCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        createInfo.queueFamilyIndex = family;
+        createInfo.queueCount = 1;
+        createInfo.pQueuePriorities = &queuePriority;
+        createInfos.push_back(createInfo);
+    } 
 
-    return queueCreateInfo;
+    return createInfos;
 }
 
 VkDeviceCreateInfo getDeviceCreateInfo(
-    VkDeviceQueueCreateInfo *queueCreateInfo,
-    VkPhysicalDeviceFeatures *deviceFeatures,
-    const std::vector<const char *>* layers = {})
+    const std::vector<VkDeviceQueueCreateInfo>* queueCreateInfos,
+    const VkPhysicalDeviceFeatures *deviceFeatures,
+    const std::vector<const char *>* layers = {},
+    const std::vector<const char *>* extensions = {}
+    )
 {
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pQueueCreateInfos = queueCreateInfo;
+    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos->size());
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos->data();
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pEnabledFeatures = deviceFeatures;
-    deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions->size());
+    deviceCreateInfo.ppEnabledExtensionNames = extensions->data();
     deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(layers->size());
     deviceCreateInfo.ppEnabledLayerNames = layers->data();
 
@@ -260,5 +304,13 @@ auto equal(T rhs)
     {
         return lhs == rhs;
     };
+}
+
+template <typename T> 
+auto validate(T** lhs) { 
+    if (*lhs == nullptr)
+    {
+        *lhs = new T();
+    }
 }
 #pragma endregion
