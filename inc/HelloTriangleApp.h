@@ -1,8 +1,7 @@
 #pragma once
 #include <iostream>
 #include <stdexcept>
-#include <vector>
-#include "./fwd.hpp"
+#include <vector> 
 
 class HelloTriangleApp
 {
@@ -19,15 +18,17 @@ private:
         "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char *> m_DeviceExtensions = {
-        "VK_KHR_swapchain"
+        "VK_KHR_swapchain",
     };
 
     void *m_Window = nullptr;
     void *m_VkInstance = nullptr;
     void *m_VkDebugMessager = nullptr;
+    void *m_VkPhysicalDevice = nullptr;
     void *m_VkDevice = nullptr;
     void *m_VkSurface = nullptr;
     void *m_VkPresentQueue = nullptr;
+    void *m_VkSwapChain = nullptr;
 
 private:
     void init();
@@ -36,6 +37,7 @@ private:
     void setupDebugMessanger();
     void createSurface();
     void createDevice();
+    void createSwapChain();
 
     void mainLoop();
     void cleanup();

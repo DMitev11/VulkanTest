@@ -1,5 +1,5 @@
-#include "../inc/vulkan_utils.hpp"
 #include "../inc/HelloTriangleApp.h"
+#include "../inc/vulkan_utils.hpp"
 
 void HelloTriangleApp::init()
 {
@@ -64,12 +64,11 @@ void HelloTriangleApp::createSurface()
 
 void HelloTriangleApp::createDevice()
 {
-    VkPhysicalDevice physicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance), m_DeviceExtensions);
-    QueueFamilies familyIndexes = getQueueFamilyIndexes(physicalDevice, getQueueFamilyProperties(physicalDevice), *(VkSurfaceKHR*)m_VkSurface);
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = getDeviceQueueCreateInfo(physicalDevice, familyIndexes);
-    std::vector<VkDeviceQueueCreateInfo> queueInfos = 
-        getDeviceQueueCreateInfo(physicalDevice, familyIndexes);
+    validate((VkDevice**) &m_VkPhysicalDevice);
+    *(VkPhysicalDevice*) m_VkPhysicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance), m_DeviceExtensions,  *(VkSurfaceKHR*)m_VkSurface);
+    
+    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
+    std::vector<VkDeviceQueueCreateInfo> queueInfos = getDeviceQueueCreateInfo(*(VkPhysicalDevice*) m_VkPhysicalDevice, familyIndices);
 
 
     validate((VkDevice**) &m_VkDevice);
@@ -77,13 +76,35 @@ void HelloTriangleApp::createDevice()
     std::vector<const char *> layers =
         checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
     VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfos, &deviceFeatures, &layers, &m_DeviceExtensions);
-    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
+    if (vkCreateDevice(*(VkPhysicalDevice*) m_VkPhysicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create logical device!");
     }
 
     validate((VkQueue**) &m_VkPresentQueue);
-    vkGetDeviceQueue(*(VkDevice *)m_VkDevice, familyIndexes.presentation, 0, (VkQueue*)m_VkPresentQueue);
+    vkGetDeviceQueue(*(VkDevice *)m_VkDevice, familyIndices.presentation, 0, (VkQueue*)m_VkPresentQueue);
+}
+
+void HelloTriangleApp::createSwapChain()
+{   
+    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
+    SwapChainSupportDetails swapChainSupport = queryPhysicalDeviceSwapChainSupport(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+    validate((VkSwapchainKHR**) &m_VkSwapChain);
+    VkSwapchainCreateInfoKHR createInfo = getSwapChainCreateInfo(swapChainSupport, familyIndices, *(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
+    createInfo.imageExtent = extent;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = *(VkSwapchainKHR*) m_VkSwapChain;
+    
+    if (vkCreateSwapchainKHR(*(VkDevice *)m_VkDevice, &createInfo, nullptr, (VkSwapchainKHR*) m_VkSwapChain) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create swap chain!");
+    }
+
+    //@todo retrieve all images
 }
 
 void HelloTriangleApp::mainLoop()
@@ -94,6 +115,7 @@ void HelloTriangleApp::mainLoop()
     setupDebugMessanger();
     createSurface();
     createDevice();
+    createSwapChain();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {
@@ -103,8 +125,9 @@ void HelloTriangleApp::mainLoop()
 
 void HelloTriangleApp::cleanup()
 {
-    destroyDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, *(VkDebugUtilsMessengerEXT *)m_VkDebugMessager, nullptr);
+    vkDestroySwapchainKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, nullptr);
     vkDestroyDevice(*(VkDevice *)m_VkDevice, nullptr);
+    destroyDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, *(VkDebugUtilsMessengerEXT *)m_VkDebugMessager, nullptr);
     vkDestroyInstance(*(VkInstance *)m_VkInstance, nullptr);
     glfwDestroyWindow((GLFWwindow *)m_Window);
     glfwTerminate();
