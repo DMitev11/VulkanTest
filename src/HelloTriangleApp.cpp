@@ -107,6 +107,25 @@ void HelloTriangleApp::createSwapChain()
     //@todo retrieve all images
 }
 
+void HelloTriangleApp::createImageViews() { 
+    uint32_t imageCount;
+    vkGetSwapchainImagesKHR(*(VkDevice *) m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, &imageCount, nullptr);
+    std::vector<VkImage> swapChainImages = std::vector<VkImage>();
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(*(VkDevice *) m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, &imageCount, swapChainImages.data());
+
+    m_VkSwapChainImageViews = std::vector<void*>();
+    m_VkSwapChainImageViews.resize(swapChainImages.size());
+
+    for(int i = 0; i < swapChainImages.size(); i++) { 
+        auto createInfo = getSwapChainImageViewCreateInfo(swapChainImages[i]);
+        validate((VkImageView**) &m_VkSwapChainImageViews[i]);
+        if (vkCreateImageView(*(VkDevice *) m_VkDevice, &createInfo, nullptr, (VkImageView*)m_VkSwapChainImageViews[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image views!");
+        }
+    }
+}
+
 void HelloTriangleApp::mainLoop()
 {
     init();
@@ -116,6 +135,7 @@ void HelloTriangleApp::mainLoop()
     createSurface();
     createDevice();
     createSwapChain();
+    createImageViews();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {
@@ -125,6 +145,10 @@ void HelloTriangleApp::mainLoop()
 
 void HelloTriangleApp::cleanup()
 {
+    for(auto imageView : m_VkSwapChainImageViews) { 
+        vkDestroyImageView(*(VkDevice *) m_VkDevice, *(VkImageView*)imageView, nullptr);
+    }
+
     vkDestroySwapchainKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, nullptr);
     vkDestroyDevice(*(VkDevice *)m_VkDevice, nullptr);
     destroyDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, *(VkDebugUtilsMessengerEXT *)m_VkDebugMessager, nullptr);

@@ -29,6 +29,7 @@ private:
     void *m_VkSurface = nullptr;
     void *m_VkPresentQueue = nullptr;
     void *m_VkSwapChain = nullptr;
+    std::vector<void*> m_VkSwapChainImageViews = std::vector<void*>();
 
 private:
     void init();
@@ -38,6 +39,7 @@ private:
     void createSurface();
     void createDevice();
     void createSwapChain();
+    void createImageViews();
 
     void mainLoop();
     void cleanup();
