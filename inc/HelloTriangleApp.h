@@ -30,6 +30,7 @@ private:
     void *m_VkPresentQueue = nullptr;
     void *m_VkSwapChain = nullptr;
     std::vector<void*> m_VkSwapChainImageViews = std::vector<void*>();
+    std::vector<void*> m_VkShaderModules = std::vector<void*>();
 
 private:
     void init();
@@ -40,6 +41,7 @@ private:
     void createDevice();
     void createSwapChain();
     void createImageViews();
+    void createGraphicsPipeline();
 
     void mainLoop();
     void cleanup();

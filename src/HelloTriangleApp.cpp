@@ -48,82 +48,138 @@ void HelloTriangleApp::setupDebugMessanger()
 
 void HelloTriangleApp::createSurface()
 {
-    validate<VkSurfaceKHR>((VkSurfaceKHR **) &m_VkSurface);
-    
+    validate<VkSurfaceKHR>((VkSurfaceKHR **)&m_VkSurface);
+
     VkWin32SurfaceCreateInfoKHR createInfo = getSurfaceCreateInfo(GetModuleHandle(nullptr), (GLFWwindow *)m_Window);
     if (vkCreateWin32SurfaceKHR(*(VkInstance *)m_VkInstance, &createInfo, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create window surface!");
     }
 
-    if (glfwCreateWindowSurface(*(VkInstance *)m_VkInstance, (GLFWwindow *)m_Window, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(*(VkInstance *)m_VkInstance, (GLFWwindow *)m_Window, nullptr, (VkSurfaceKHR *)m_VkSurface) != VK_SUCCESS)
+    {
         throw std::runtime_error("failed to create window surface!");
     }
-
 }
 
 void HelloTriangleApp::createDevice()
 {
-    validate((VkDevice**) &m_VkPhysicalDevice);
-    *(VkPhysicalDevice*) m_VkPhysicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance), m_DeviceExtensions,  *(VkSurfaceKHR*)m_VkSurface);
-    
-    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
-    std::vector<VkDeviceQueueCreateInfo> queueInfos = getDeviceQueueCreateInfo(*(VkPhysicalDevice*) m_VkPhysicalDevice, familyIndices);
+    validate((VkDevice **)&m_VkPhysicalDevice);
+    *(VkPhysicalDevice *)m_VkPhysicalDevice = getValidPhysicalDevice(getPhysicalDevices(*(VkInstance *)m_VkInstance), m_DeviceExtensions, *(VkSurfaceKHR *)m_VkSurface);
 
+    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice *)m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
+    std::vector<VkDeviceQueueCreateInfo> queueInfos = getDeviceQueueCreateInfo(*(VkPhysicalDevice *)m_VkPhysicalDevice, familyIndices);
 
-    validate((VkDevice**) &m_VkDevice);
+    validate((VkDevice **)&m_VkDevice);
     VkPhysicalDeviceFeatures deviceFeatures{};
     std::vector<const char *> layers =
         checkValidationLayerSupport(m_ValidationLayers) ? m_ValidationLayers : std::vector<const char *>{};
     VkDeviceCreateInfo createInfo = getDeviceCreateInfo(&queueInfos, &deviceFeatures, &layers, &m_DeviceExtensions);
-    if (vkCreateDevice(*(VkPhysicalDevice*) m_VkPhysicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
+    if (vkCreateDevice(*(VkPhysicalDevice *)m_VkPhysicalDevice, &createInfo, nullptr, (VkDevice *)m_VkDevice) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    validate((VkQueue**) &m_VkPresentQueue);
-    vkGetDeviceQueue(*(VkDevice *)m_VkDevice, familyIndices.presentation, 0, (VkQueue*)m_VkPresentQueue);
+    validate((VkQueue **)&m_VkPresentQueue);
+    vkGetDeviceQueue(*(VkDevice *)m_VkDevice, familyIndices.presentation, 0, (VkQueue *)m_VkPresentQueue);
 }
 
 void HelloTriangleApp::createSwapChain()
-{   
-    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
-    SwapChainSupportDetails swapChainSupport = queryPhysicalDeviceSwapChainSupport(*(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR*)m_VkSurface);
+{
+    QueueFamilies familyIndices = getQueueFamilyIndices(*(VkPhysicalDevice *)m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
+    SwapChainSupportDetails swapChainSupport = queryPhysicalDeviceSwapChainSupport(*(VkPhysicalDevice *)m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-    validate((VkSwapchainKHR**) &m_VkSwapChain);
-    VkSwapchainCreateInfoKHR createInfo = getSwapChainCreateInfo(swapChainSupport, familyIndices, *(VkPhysicalDevice*) m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
+    validate((VkSwapchainKHR **)&m_VkSwapChain);
+    VkSwapchainCreateInfoKHR createInfo = getSwapChainCreateInfo(swapChainSupport, familyIndices, *(VkPhysicalDevice *)m_VkPhysicalDevice, *(VkSurfaceKHR *)m_VkSurface);
     createInfo.imageExtent = extent;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = *(VkSwapchainKHR*) m_VkSwapChain;
-    
-    if (vkCreateSwapchainKHR(*(VkDevice *)m_VkDevice, &createInfo, nullptr, (VkSwapchainKHR*) m_VkSwapChain) != VK_SUCCESS) {
+    createInfo.oldSwapchain = *(VkSwapchainKHR *)m_VkSwapChain;
+
+    if (vkCreateSwapchainKHR(*(VkDevice *)m_VkDevice, &createInfo, nullptr, (VkSwapchainKHR *)m_VkSwapChain) != VK_SUCCESS)
+    {
         throw std::runtime_error("failed to create swap chain!");
     }
 
     //@todo retrieve all images
 }
 
-void HelloTriangleApp::createImageViews() { 
+void HelloTriangleApp::createImageViews()
+{
     uint32_t imageCount;
-    vkGetSwapchainImagesKHR(*(VkDevice *) m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR *)m_VkSwapChain, &imageCount, nullptr);
     std::vector<VkImage> swapChainImages = std::vector<VkImage>();
     swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(*(VkDevice *) m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, &imageCount, swapChainImages.data());
+    vkGetSwapchainImagesKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR *)m_VkSwapChain, &imageCount, swapChainImages.data());
 
-    m_VkSwapChainImageViews = std::vector<void*>();
+    m_VkSwapChainImageViews = std::vector<void *>();
     m_VkSwapChainImageViews.resize(swapChainImages.size());
 
-    for(int i = 0; i < swapChainImages.size(); i++) { 
+    for (int i = 0; i < swapChainImages.size(); i++)
+    {
         auto createInfo = getSwapChainImageViewCreateInfo(swapChainImages[i]);
-        validate((VkImageView**) &m_VkSwapChainImageViews[i]);
-        if (vkCreateImageView(*(VkDevice *) m_VkDevice, &createInfo, nullptr, (VkImageView*)m_VkSwapChainImageViews[i]) != VK_SUCCESS) {
+        validate((VkImageView **)&m_VkSwapChainImageViews[i]);
+        if (vkCreateImageView(*(VkDevice *)m_VkDevice, &createInfo, nullptr, (VkImageView *)m_VkSwapChainImageViews[i]) != VK_SUCCESS)
+        {
             throw std::runtime_error("failed to create image views!");
         }
     }
+}
+
+void HelloTriangleApp::createGraphicsPipeline()
+{
+    auto vertShaderCode = readBinary("./shaders/vert.spv");
+    auto fragShaderCode = readBinary("./shaders/frag.spv");
+
+    auto vShaderModule = new VkShaderModule(createShaderModule(*(VkDevice *)m_VkDevice, vertShaderCode));
+    auto fShaderModule = new VkShaderModule(createShaderModule(*(VkDevice *)m_VkDevice, fragShaderCode));
+    m_VkShaderModules.push_back((void *)vShaderModule);
+    m_VkShaderModules.push_back((void *)fShaderModule);
+
+    auto vertCreateInfo = getPipelineShaderCreateInfo(*vShaderModule, VK_SHADER_STAGE_VERTEX_BIT);
+    auto fragCreateInfo = getPipelineShaderCreateInfo(*fShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    std::vector<VkDynamicState> dynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR};
+
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)swapChainExtent.width;
+    viewport.height = (float)swapChainExtent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapChainExtent;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
 }
 
 void HelloTriangleApp::mainLoop()
@@ -136,6 +192,7 @@ void HelloTriangleApp::mainLoop()
     createDevice();
     createSwapChain();
     createImageViews();
+    createGraphicsPipeline();
 
     while (!glfwWindowShouldClose((GLFWwindow *)m_Window))
     {
@@ -145,11 +202,12 @@ void HelloTriangleApp::mainLoop()
 
 void HelloTriangleApp::cleanup()
 {
-    for(auto imageView : m_VkSwapChainImageViews) { 
-        vkDestroyImageView(*(VkDevice *) m_VkDevice, *(VkImageView*)imageView, nullptr);
+    for (auto imageView : m_VkSwapChainImageViews)
+    {
+        vkDestroyImageView(*(VkDevice *)m_VkDevice, *(VkImageView *)imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR*) m_VkSwapChain, nullptr);
+    vkDestroySwapchainKHR(*(VkDevice *)m_VkDevice, *(VkSwapchainKHR *)m_VkSwapChain, nullptr);
     vkDestroyDevice(*(VkDevice *)m_VkDevice, nullptr);
     destroyDebugUtilsMessengerEXT(*(VkInstance *)m_VkInstance, *(VkDebugUtilsMessengerEXT *)m_VkDebugMessager, nullptr);
     vkDestroyInstance(*(VkInstance *)m_VkInstance, nullptr);
